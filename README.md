@@ -34,7 +34,15 @@ conda env create --name sblens --file sblens.yml
 Activate new env:
 ```bash
 conda activate sblens
+
 ```
+Install psfex:
+```bash
+git clone https://github.com/esheldon/psfex.git
+cd psfex
+pip install -e .
+```
+
 
 Conda install ngmix:
 ```bash
