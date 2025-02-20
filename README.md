@@ -36,7 +36,7 @@ Activate new env:
 conda activate sblens
 
 ```
-Install psfex:
+cd back out of superbit-lensing and Install psfex:
 ```bash
 git clone https://github.com/esheldon/psfex.git
 cd psfex
