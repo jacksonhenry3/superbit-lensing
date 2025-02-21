@@ -49,15 +49,12 @@ Before running the pipeline, you need to create a specific environment for super
    ```bash
    source activate sblens  # Switches to the 'sblens' environment.
    ```  
-   *Reference: [Activating Conda Environments](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)*
 
 7. **Install the Project Package**  
    Installing in "editable" mode allows you to modify the source code, and your changes will be reflected immediately without reinstalling.  
    ```bash
    pip install -e .  # Installs the project so that any source code changes are updated immediately.
    ```  
-   *Reference: [pip Editable Installs](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs)*
-
 --- 
 
 
