@@ -40,7 +40,16 @@ cd ..
 
 Activate new env:
 ```bash
+
 source activate sblens
+```
+
+cd back out of superbit-lensing and Install psfex:
+```bash
+git clone https://github.com/esheldon/psfex.git
+cd psfex
+pip install -e .
+ for_students
 ```
 
 Conda install ngmix:
