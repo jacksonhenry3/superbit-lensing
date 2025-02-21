@@ -1,7 +1,8 @@
-# superbit-lensing
-Contains a collection of routines used to perform ngmix fits, including metacalibration, on SuperBIT images.
+# superbit-lensing (WPI)
 
-This repo has recently been significantly refactored into the new `superbit_lensing` module. The module includes the following four submodules which can be used independently if desired:
+This is specific to the WPI SUPERBit ISU. For more general instructions,see the original repo at: https://github.com/superbit-collaboration/superbit-lensing
+
+ The module includes the following four submodules which can be used independently if desired:
 
   - `galsim`: Contains scripts that generate the simulated SuperBIT observations used for validation and forecasting analyses. (Broken, will be fixed soon)
   - `medsmaker`: Contains small modifications to the original superbit-ngmix scripts that make coadd images, runs SExtractor & PSFEx, and creates MEDS files.
@@ -10,73 +11,70 @@ This repo has recently been significantly refactored into the new `superbit_lens
 
 More detailed descriptions for each stage are contained in their respective directories.
 
-Currently, the pipeline is designed to run on a single cluster at a time. In the future, a meta job script will be developed to automate batch processing across multiple clusters. For now, each job script is configured to process a single cluster, but multiple job scripts can run simultaneously, provided that each is properly set up for its respective cluster. The `job_script_template.sh` file serves as a template, containing detailed instructions on how to configure and execute the pipeline for a specific cluster.
 
-
-## To build a specific run environment
+## Build a python virtual enviornment with all the required tools
 Before running the pipeline, a specific environemnt for superbit-lensing must be created.
 
-First, clone the repo:
+First load the anaconda python distribution:
+
 ```bash
-git clone https://github.com/superbit-collaboration/superbit-lensing.git
+module load miniconda3
+```
+
+
+In a folder for this project clone the repo:
+```bash
+git clone -b for_students https://github.com/jacksonhenry3/superbit-lensing.git
 ```
 
 cd to this repo:
 ```bash
-cd /path/to/repos/superbit-lensing
+cd superbit-lensing
 ```
 
 Create env from yml (e.g. `sblens.yml`):
 ```bash
 conda env create --name sblens --file sblens.yml
+cd ..
 ```
 
 Activate new env:
 ```bash
-conda activate sblens
 
+source activate sblens
 ```
+
 cd back out of superbit-lensing and Install psfex:
 ```bash
 git clone https://github.com/esheldon/psfex.git
 cd psfex
 pip install -e .
+ for_students
 ```
-
 
 Conda install ngmix:
 ```bash
 conda install conda-forge::ngmix
 ```
 
-Clone the meds repo outside of this repo:
+Install psfex:
+```bash
+git clone https://github.com/esheldon/psfex.git
+cd psfex
+pip install .
+cd ..
+```
+
+Install meds:
 ```bash
 git clone https://github.com/esheldon/meds.git
-```
-
-cd to meds repo:
-```bash
-cd /path/to/repos/meds
-```
-
-Build the meds repo:
-```bash
+cd meds
 pip install .
+cd ..
 ```
 
-cd to this repo:
+Install superbit-lensing :
 ```bash
-cd /path/to/repos/superbit-lensing
-```
-
-pip install repo:
-```bash
+cd superbit-lensing
 pip install -e . 
 ```
-
-## For the experts
-
-Contact @GeorgeVassilakis at vassilakis.g@northeastern.edu, @MayaAmit at amit.m@northeastern.edu, or @mcclearyj at j.mccleary@northeastern.edu you have any questions about running the pipeline - or even better, create an issue!
-
-![IMG_7144](https://github.com/user-attachments/assets/8a028b03-fdaa-4fbc-a602-c739941cd503)
-
