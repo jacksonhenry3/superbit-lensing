@@ -4,8 +4,15 @@ This is specific to the WPI SUPERBit ISU. For more general instructions,see the 
 
 ---
 
+## There are four major steps to run this pipeline
 
-## Build a Python Virtual Environment with All Required Tools
+1. Create the virtual environment that has all the required tools built in
+2. set up your data and configure important variables.
+3. Run the code!
+4. Analyse the results
+
+
+### 1. Build a Python Virtual Environment with All Required Tools
 
 Before running the pipeline, you need to create a specific environment for superbit-lensing.
 
@@ -57,8 +64,20 @@ Before running the pipeline, you need to create a specific environment for super
    pip install -e .  # Installs the project so that any source code changes are updated immediately.
    ```  
 --- 
+### 2. Set up important variables and data 
+1. run `post_installation.py` and accept the defaults.
+2. When you are ready email jackson asking for the data.
+3. Move the provided directory in to the data directory in this repository
+4. copy submission_example.sh and rename it (e.g. Abell3411_submission.sh)
+5. Open your new submission file and modify it so that it has the correct cluster name. The default is Abel3411, so replace that everywhere you see it. Modify the email to be your wpi email.
 
+### 3. Run the code
+1. from inside the superbit-lensing directory run sbatch cluster_name.sh (e.g. `sbatch Abell3411_submission.sh`)
+2. This will run the code on a compute node. If eveything is working it will take ~5 hours to run. You will get an email whenever your job status changes, this way you will know if it fails quickly and you need to change something.
+3. you can check the job by running `squeue --me`, the job will be saving its output to two files both in the `slurm_outfiles` directory. These are update as the job runs, (but not while the file is open) so you can check for errors or see what the job is doing at any time by looking at the two files that are saved their. (e.g. `Abel3411_b_109123.out` and `Abel3411_b_109123.err`) When your job is done, check here for errors.
 
+### 4. Analyse the results
+---
  The module includes the following four submodules which can be used independently if desired:
 
   - `galsim`: Contains scripts that generate the simulated SuperBIT observations used for validation and forecasting analyses. (Broken, will be fixed soon)
