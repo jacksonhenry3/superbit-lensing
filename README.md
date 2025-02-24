@@ -13,6 +13,7 @@ Before running the pipeline, you need to create a specific environment for super
    First, make a new directory named `weak-lensing` to organize your project files.  
    ```bash
    mkdir weak_lensing  # Creates a new folder called 'weak-lensing'
+   cd weak_lensing
    ```  
    *Reference: [Linux mkdir Command](https://linux.die.net/man/1/mkdir)*
 
