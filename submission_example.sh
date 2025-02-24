@@ -2,7 +2,7 @@
 #SBATCH -t 23:59:59
 #SBATCH -N 1
 #SBATCH -n 18
-#SBATCH --mem-per-cpu=10g
+#SBATCH --mem-per-cpu=20g
 #SBATCH --partition=short
 #SBATCH -J Abell3411_b
 #SBATCH --mail-type=ALL
