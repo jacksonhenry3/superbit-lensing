@@ -66,10 +66,13 @@ Before running the pipeline, you need to create a specific environment for super
 --- 
 ### 2. Set up important variables and data 
 1. run `post_installation.py` and accept the defaults.
+```bash
+python post_installation.py
+```
 2. When you are ready email jackson asking for the data.
-3. Move the provided directory in to the data directory in this repository
-4. copy submission_example.sh and rename it (e.g. Abell3411_submission.sh)
-5. Open your new submission file and modify it so that it has the correct cluster name. The default is Abel3411, so replace that everywhere you see it. Modify the email to be your wpi email.
+3. Move the provided directory in to the data directory in this repository.
+4. copy submission_example.sh and rename it (e.g. `Abell3411_submission.sh`)
+5. Open your new submission file and modify it so that it has the correct cluster name, and the correct email. The default is Abel3411, so replace that everywhere you see it. Modify the email to be your wpi email.
 
 ### 3. Run the code
 1. from inside the superbit-lensing directory run sbatch cluster_name.sh (e.g. `sbatch Abell3411_submission.sh`)
