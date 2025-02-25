@@ -11,7 +11,7 @@
 #SBATCH -e slurm_outfiles/Abell3411_b_%j.err
 
 module load miniconda3
-source activate sblens1
+source activate sblens
 
 echo "Proceeding with code..."
 
