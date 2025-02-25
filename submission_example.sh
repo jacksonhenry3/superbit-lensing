@@ -67,4 +67,4 @@ python $CODEDIR/shear_profiles/make_annular_catalog.py \
   $DATADIR $TARGET $OUTDIR/${TARGET}_${BAND}_mcal.fits \
   $OUTDIR/${TARGET}_${BAND}_annular.fits
 
-echo "Annular Catalog step completed
+echo "Annular Catalog step completed"
