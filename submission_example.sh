@@ -6,7 +6,7 @@
 #SBATCH --partition=short
 #SBATCH -J Abell3411_b
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=user_name@wpi.edu
+#SBATCH --mail-user=your_email@wpi.edu
 #SBATCH -o slurm_outfiles/Abell3411_b_%j.out
 #SBATCH -e slurm_outfiles/Abell3411_b_%j.err
 
@@ -52,7 +52,7 @@ python $CODEDIR/metacalibration/ngmix_fit.py \
   -gal_model=$GAL_MODEL \
   --overwrite \
   $OUTDIR/${TARGET}_${BAND}_meds.fits \
-  $OUTDIR/${TARGET}_${BAND}_mcal.fits
+  ${TARGET}_${BAND}_mcal.fits
 
 echo "Metacalibration step completed."
 

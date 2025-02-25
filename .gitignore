@@ -19,7 +19,8 @@ job_scripts/
 lib/
 make_job_scripts.py
 runs/
-slurm_outfiles/*
+slurm_outfiles/*.err
+slurm_outfile/*.out
 superbit_lensing/__pycache__/
 superbit_lensing/tests/*
 superbit_lensing/galsim/config_files/bit_0.24gauss_cl3.yaml
