@@ -48,7 +48,6 @@ Before running the pipeline, you need to create a specific environment for super
    A virtual environment is an isolated space that contains its own Python version and libraries. This step uses a YAML file (`sblens.yml`) to install all required packages.  
    ```bash
    conda env create --name sblens --file sblens.yml  # Creates an isolated environment named 'sblens'.
-   cd ..  # Returns to the parent directory if needed.
    ```  
    *Reference: [Conda Environments](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)*
 
@@ -70,7 +69,7 @@ Before running the pipeline, you need to create a specific environment for super
 python post_installation.py
 ```
 2. When you are ready email jackson asking for the data.
-3. Move the provided directory in to the data directory in this repository.
+3. Copy `cp` the provided directory in to the data directory in this repository.
 4. copy submission_example.sh and rename it (e.g. `Abell3411_submission.sh`)
 5. Open your new submission file and modify it so that it has the correct cluster name, and the correct email. The default is Abel3411, so replace that everywhere you see it. Modify the email to be your wpi email.
 
