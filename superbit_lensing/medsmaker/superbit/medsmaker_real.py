@@ -41,8 +41,7 @@ class BITMeasurement():
         self.ext_header = ext_header
         self.band = band
         self.detection_bandpass = detection_bandpass
-        self.exposure_mask_fname = "/work/mccleary_group/superbit/union/masks/mask_dark_55percent_300.npy" 
-
+        self.exposure_mask_fname = "/home/jhenry1/projects/weak_lensing/new_data/masks/mask_dark_55percent_300.npy"
         self.image_cats = []
         self.detect_img_path = None
         self.detect_cat_path = None
@@ -431,7 +430,7 @@ class BITMeasurement():
         coadd_sgm_file = coadd_im_file.replace('.fits', '.sgm.fits')
 
         # Now, have to combine the weight and image file into one.
-        im = fits.open(coadd_im_file, mode='append'); im[0].name = 'SCI'
+        im = fits.open(coadd_im_file, mode='append'); print(coadd_im_file); im[0].name = 'SCI'
         if im.__contains__('WGT') == True:
             self.logprint(f"\n Coadd image {coadd_im_file} already contains " +
                           "an extension named 'WGT', skipping...\n")
