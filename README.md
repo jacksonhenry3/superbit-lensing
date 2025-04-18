@@ -1,7 +1,85 @@
-# superbit-lensing
-Contains a collection of routines used to perform ngmix fits, including metacalibration, on SuperBIT images.
+# superbit-lensing (WPI)
 
-This repo has recently been significantly refactored into the new `superbit_lensing` module. The module includes the following four submodules which can be used independently if desired:
+This is specific to the WPI SUPERBit ISU. For more general instructions,see the original repo at: https://github.com/superbit-collaboration/superbit-lensing
+
+---
+
+## There are four major steps to run this pipeline
+
+1. Create the virtual environment that has all the required tools built in
+2. set up your data and configure important variables.
+3. Run the code!
+4. Analyse the results
+
+
+### 1. Build a Python Virtual Environment with All Required Tools
+
+Before running the pipeline, you need to create a specific environment for superbit-lensing.
+
+1. **Create a New Directory**  
+   First, make a new directory named `weak-lensing` to organize your project files.  
+   ```bash
+   mkdir weak_lensing  # Creates a new folder called 'weak-lensing'
+   cd weak_lensing
+   ```  
+   *Reference: [Linux mkdir Command](https://linux.die.net/man/1/mkdir)*
+
+2. **Load the Anaconda Distribution**  
+   This loads Miniconda, which lets you create and manage isolated Python environments. Anaconda/Miniconda is a distribution of Python that includes additional tools for managing dependencies.  
+   ```bash
+   module load miniconda3  # Loads the Miniconda module to manage Python environments.
+   ```  
+   *Reference: [Conda Documentation](https://docs.conda.io/projects/conda/en/latest/index.html)*
+
+3. **Clone the Repository**  
+   "Clone" means to create a local copy of the project from a remote server (like GitHub). A repository (repo) contains all the project's files and history.  
+   ```bash
+   git clone -b for_students https://github.com/jacksonhenry3/superbit-lensing.git  # Copies the project to your computer.
+   ```  
+   *Reference: [Git Basics](https://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository)*
+
+4. **Navigate into the Repository**  
+   Change your current directory to the project folder.  
+   ```bash
+   cd superbit-lensing  # Moves into the project directory where the files are stored.
+   ```
+
+5. **Create the Virtual Environment**  
+   A virtual environment is an isolated space that contains its own Python version and libraries. This step uses a YAML file (`sblens.yml`) to install all required packages.  
+   ```bash
+   conda env create --name sblens --file sblens.yml  # Creates an isolated environment named 'sblens'.
+   ```  
+   *Reference: [Conda Environments](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)*
+
+6. **Activate the Virtual Environment**  
+   "Activate" means to switch your current session to use the new environment. All Python commands will then use the packages installed in it. Note that this is done in a way that makes things easier on the cluster.
+   ```bash
+   source activate sblens  # Switches to the 'sblens' environment.
+   ```  
+
+7. **Install the Project Package**  
+   Installing in "editable" mode allows you to modify the source code, and your changes will be reflected immediately without reinstalling.  
+   ```bash
+   pip install -e .  # Installs the project so that any source code changes are updated immediately.
+   ```  
+--- 
+### 2. Set up important variables and data 
+1. run `post_installation.py` and accept the defaults.
+```bash
+python post_installation.py
+```
+2. update the `self.exposure_mask_fname` variable in **superbit_lensing/color/sextractor_dual.py** and **superbit_lensing/medsmaker/superbit/medsmaker_real.py** to point to *mask_dark_55percent_300.npy*
+3. When you are ready email jackson asking for the data.
+4. Copy `cp` the provided directory in to the data directory in this repository.
+
+### 3. Run the code
+1. Go to the job_scripts directory and follow the instructions in the readme. 
+3. This will run the code on a compute node. If eveything is working it will take ~5 hours to run. You will get an email whenever your job status changes, this way you will know if it fails quickly and you need to change something.
+4. you can check the job by running `squeue --me`, the job will be saving its output to two files both in the `slurm_outfiles` directory. These are update as the job runs, (but not while the file is open) so you can check for errors or see what the job is doing at any time by looking at the two files that are saved their. (e.g. `Abel3411_b_109123.out` and `Abel3411_b_109123.err`) When your job is done, check here for errors.
+
+### 4. Analyse the results
+---
+ The module includes the following four submodules which can be used independently if desired:
 
   - `galsim`: Contains scripts that generate the simulated SuperBIT observations used for validation and forecasting analyses. (Broken, will be fixed soon)
   - `medsmaker`: Contains small modifications to the original superbit-ngmix scripts that make coadd images, runs SExtractor & PSFEx, and creates MEDS files.
@@ -9,66 +87,3 @@ This repo has recently been significantly refactored into the new `superbit_lens
   - `shear-profiles`: Contains scripts to compute the tangential/cross shear profiles and output to a file, as well as plots of the shear profiles.
 
 More detailed descriptions for each stage are contained in their respective directories.
-
-Currently, the pipeline is designed to run on a single cluster at a time. In the future, a meta job script will be developed to automate batch processing across multiple clusters. For now, each job script is configured to process a single cluster, but multiple job scripts can run simultaneously, provided that each is properly set up for its respective cluster. The `job_script_template.sh` file serves as a template, containing detailed instructions on how to configure and execute the pipeline for a specific cluster.
-
-
-## To build a specific run environment
-Before running the pipeline, a specific environemnt for superbit-lensing must be created.
-
-First, clone the repo:
-```bash
-git clone https://github.com/superbit-collaboration/superbit-lensing.git
-```
-
-cd to this repo:
-```bash
-cd /path/to/repos/superbit-lensing
-```
-
-Create env from yml (e.g. `sblens.yml`):
-```bash
-conda env create --name sblens --file sblens.yml
-```
-
-Activate new env:
-```bash
-conda activate sblens
-```
-
-Conda install ngmix:
-```bash
-conda install conda-forge::ngmix
-```
-
-Clone the meds repo outside of this repo:
-```bash
-git clone https://github.com/esheldon/meds.git
-```
-
-cd to meds repo:
-```bash
-cd /path/to/repos/meds
-```
-
-Build the meds repo:
-```bash
-python setup.py install
-```
-
-cd to this repo:
-```bash
-cd /path/to/repos/superbit-lensing
-```
-
-pip install repo:
-```bash
-pip install -e . 
-```
-
-## For the experts
-
-Contact @GeorgeVassilakis at vassilakis.g@northeastern.edu, @MayaAmit at amit.m@northeastern.edu, or @mcclearyj at j.mccleary@northeastern.edu you have any questions about running the pipeline - or even better, create an issue!
-
-![IMG_7144](https://github.com/user-attachments/assets/8a028b03-fdaa-4fbc-a602-c739941cd503)
-
