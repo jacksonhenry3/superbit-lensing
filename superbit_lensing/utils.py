@@ -454,6 +454,66 @@ def get_test_dir():
     base_dir = get_base_dir()
     return os.path.join(base_dir, 'tests')
 
+def analyze_mcal_fits(file_path):
+    # Read the FITS file
+    data = Table.read(file_path, format='fits')
+
+    # Extract RA and Dec
+    ra = data['ra']
+    dec = data['dec']
+
+    # Compute full min and max boundaries
+    ra_min, ra_max = np.min(ra), np.max(ra)
+    dec_min, dec_max = np.min(dec), np.max(dec)
+
+     # Compute the center of the field of view
+    ra_center = (ra_max + ra_min) / 2
+    dec_center = (dec_max + dec_min) / 2
+
+    # Compute the radius needed to cover the entire field
+    ra_extent = (ra_max - ra_min) / 2
+    dec_extent = (dec_max - dec_min) / 2
+    covering_radius = np.sqrt(ra_extent**2 + dec_extent**2)  # Approximate max distance
+
+    # Compute middle 50% boundaries
+    ra_lower = ra_min + 0.25 * (ra_max - ra_min)
+    ra_upper = ra_max - 0.25 * (ra_max - ra_min)
+    dec_lower = dec_min + 0.25 * (dec_max - dec_min)
+    dec_upper = dec_max - 0.25 * (dec_max - dec_min)
+
+    # Filter data within middle 50%
+    mask = (ra >= ra_lower) & (ra <= ra_upper) & (dec >= dec_lower) & (dec <= dec_upper)
+    filtered_data = data[mask]
+
+    # Compute new area in arcmin²
+    area_arcmin2 = (ra_upper - ra_lower) * 60 * (dec_upper - dec_lower) * 60
+
+    # Compute object density
+    num_objects = len(filtered_data)
+    density_per_arcmin2 = num_objects / area_arcmin2 if area_arcmin2 > 0 else np.inf
+
+    print(f"Full RA range: {ra_min} to {ra_max}")
+    print(f"Full Dec range: {dec_min} to {dec_max}")
+    print(f"Field center: RA = {ra_center}, Dec = {dec_center}")
+    print(f"Covering circle radius: {covering_radius} degrees")
+
+    # Print results
+    print(f"Middle 50% RA range: {ra_lower:.6f}° to {ra_upper:.6f}°")
+    print(f"Middle 50% Dec range: {dec_lower:.6f}° to {dec_upper:.6f}°")
+    print(f"Total number of objects in middle 50%: {num_objects}")
+    print(f"Survey area (middle 50%): {area_arcmin2:.2f} arcmin²")
+    print(f"Density: {density_per_arcmin2:.2f} objects per arcmin²")
+
+    return {
+        "ra_range": (ra_lower, ra_upper),
+        "dec_range": (dec_lower, dec_upper),
+        "num_objects": num_objects,
+        "area_arcmin2": area_arcmin2,
+        "density_per_arcmin2": density_per_arcmin2
+    }
+
+
+
 BASE_DIR = get_base_dir()
 MODULE_DIR = get_module_dir()
 TEST_DIR = get_test_dir()

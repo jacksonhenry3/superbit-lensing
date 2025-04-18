@@ -39,6 +39,8 @@ def parse_args():
                         help='Shape measurement (detection) bandpass')
     parser.add_argument('--meds_coadd', action='store_true', default=False,
                         help='Set to keep coadd cutout in MEDS file')
+    parser.add_argument('--use_ext_header', action='store_true', default=False,
+                        help='Set to use external header mode')
     parser.add_argument('--overwrite', action='store_true', default=False,
                         help='Set to overwrite files')
     parser.add_argument('--vb', action='store_true', default=False,
@@ -53,6 +55,7 @@ def main(args):
     psf_mode = args.psf_mode
     psf_seed = args.psf_seed
     use_coadd = args.meds_coadd
+    ext_header = args.use_ext_header
     overwrite = args.overwrite
     bands = args.bands
     star_config_dir = args.star_config_dir
@@ -96,7 +99,7 @@ def main(args):
             star_config = None
 
         # Load in the science frames
-        endings = ["cal", "clean"]
+        endings = ["cal", "clean", "sim"]
         science = []
 
         for ending in endings:
@@ -126,7 +129,8 @@ def main(args):
              detection_bandpass,
              band_outdir,
              log=log,
-             vb=vb
+             vb=vb,
+             ext_header=ext_header
         )
 
         # TODO: Make this less hard-coded
@@ -146,6 +150,7 @@ def main(args):
             vb=vb
         )
 
+        bm.make_sextractor_weight()
 
         # Get detection source file & catalog
         logprint('Making coadd...\n')
@@ -166,6 +171,8 @@ def main(args):
         logprint('Making single-exposure catalogs... \n')
         bm.make_exposure_catalogs(astro_config_dir)
         bm.make_exposure_weights()
+        bm.make_exposure_bmask()
+        bm.make_coadd_weight()
         
         # Set image catalogs attribute
         bm.set_image_cats()
