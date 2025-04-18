@@ -8,6 +8,7 @@ This pipeline uses `ngmix_v2_fit_superbit.py` and `make_annular_catalog_v2.py`. 
    Open `config.sh` and update the following variables to match your setup:
    - `cluster_name`: Your target galaxy cluster
    - `band_name`: The observation band
+   - `cluster_redshift` the redshift of the target cluster
    - `DATADIR`: Path to your data directory
    - `CODEDIR`: Path to your code directory
 
