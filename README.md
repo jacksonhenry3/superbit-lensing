@@ -68,6 +68,7 @@ Before running the pipeline, you need to create a specific environment for super
 ```bash
 python post_installation.py
 ```
+
 2. update the `self.exposure_mask_fname` variable in **superbit_lensing/color/sextractor_dual.py** and **superbit_lensing/medsmaker/superbit/medsmaker_real.py** to point to *mask_dark_55percent_300.npy*
 3. When you are ready email jackson asking for the data.
 4. Copy `cp` the provided directory in to the data directory in this repository.
@@ -78,7 +79,20 @@ python post_installation.py
 4. you can check the job by running `squeue --me`, the job will be saving its output to two files both in the `slurm_outfiles` directory. These are update as the job runs, (but not while the file is open) so you can check for errors or see what the job is doing at any time by looking at the two files that are saved their. (e.g. `Abel3411_b_109123.out` and `Abel3411_b_109123.err`) When your job is done, check here for errors.
 
 ### 4. Analyse the results
----
+
+1. install jupyter in your slens enviropnment. With sblen active run `pip install jupyter`
+2. follow the instruictions for installation here: https://github.com/GeorgeVassilakis/SMPy
+3. make a copy of `smpy/configs/example_config.yaml` and modify the input file path to point to your and output file path
+The first few lines should look something like this:
+```yaml
+  input_path: "/home/jhenry1/projects/weak_lensing/weak_lensing/SMPy/results/Abell3411_b_annular.fits"
+  input_hdu: 1  # FITS extension number to read data from
+  output_directory: "/home/jhenry1/projects/weak_lensing/weak_lensing/SMPy/outputs/"
+  output_base_name: "simulation_testing"
+```
+5. make a copy of `examples/notebooks/SMPy_walkthrough_SIMS.ipynb` and modify the path to point to your new config
+6. run the first code cell in the notebook to generate convergence plots.
+
  The module includes the following four submodules which can be used independently if desired:
 
   - `galsim`: Contains scripts that generate the simulated SuperBIT observations used for validation and forecasting analyses. (Broken, will be fixed soon)

@@ -680,10 +680,12 @@ class BITMeasurement():
                       truthfile=truthfile
                       )
 
+
+        # The full path needs to be stripped from psfcat_name!
         # Define output names
         outcat_name = os.path.join(
             psfex_outdir,
-            psfcat_name.replace('_starcat.fits','.psfex_starcat.fits')
+            os.path.basename(psfcat_name).replace('_starcat.fits','.psfex_starcat.fits')
         )
         psfex_model_file = os.path.join(
             psfex_outdir,
