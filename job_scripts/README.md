@@ -30,5 +30,5 @@ This pipeline uses `ngmix_v2_fit_superbit.py` and `make_annular_catalog_v2.py`. 
 
     After all your ngmix runs have been finished, run the following command
     ```sh
-    bash make_annular.sh
+    sbatch sub_annular
 - This will combine all your mcal files in "data/cluster/band/arr/runx", do id matching and combine the mcal values and finally run make_annular_catalog_v2.py on the combined file. The final annular file will be "Outdir/cluster_band_annular_combined.fits"
