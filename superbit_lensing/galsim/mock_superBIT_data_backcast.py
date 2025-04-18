@@ -81,6 +81,13 @@ class truth():
         self.dec = None
         self.g1 = 0.0
         self.g2 = 0.0
+        self.kappa = 0.0
+        self.cosmos_g1 =0.0
+        self.cosmos_g2 = 0.0
+        self.admom_g1 = 0.0
+        self.admom_g2 = 0.0
+        self.admom_sigma = 0.0
+        self.admom_flag = 0.0
         self.mu = 1.0
         self.z = 0.0
         self.fwhm = 0.0
@@ -101,6 +108,7 @@ def nfw_lensing(nfw_halo, pos, nfw_z_source):
     g1,g2 = nfw_halo.getShear( pos , nfw_z_source )
     nfw_shear = galsim.Shear(g1=g1,g2=g2)
     nfw_mu = nfw_halo.getMagnification( pos , nfw_z_source )
+    nfw_kappa = nfw_halo.getConvergence(pos, nfw_z_source)
 
     if nfw_mu < 0:
         print("Warning: mu < 0 means strong lensing!  Using mu=25.")
@@ -109,7 +117,7 @@ def nfw_lensing(nfw_halo, pos, nfw_z_source):
         print("Warning: mu > 25 means strong lensing!  Using mu=25.")
         nfw_mu = 25
 
-    return nfw_shear, nfw_mu
+    return nfw_shear, nfw_mu, nfw_kappa
 
 def make_obj_runner(batch_indices, *args, **kwargs):
     '''
@@ -186,7 +194,8 @@ def combine_objs(make_obj_outputs, full_image, truth_catalog, exp_num):
             row = [i, truth.cosmos_index, truth.x, truth.y,
                    truth.ra, truth.dec,
                    truth.g1, truth.g2,
-                   truth.mu,truth.z,
+                   truth.mu, truth.kappa, truth.cosmos_g1, truth.cosmos_g2, 
+                   truth.admom_g1, truth.admom_g2, truth.admom_sigma, truth.admom_flag, truth.z,
                    this_flux, truth.fwhm, truth.mom_size,
                    truth.n, truth.hlr, truth.scale_h_over_r,
                    truth.obj_class
@@ -224,8 +233,11 @@ def make_a_galaxy(ud, wcs, affine, cosmos_cat, nfw, psf, sbparams, logprint, obj
     gal_flux = cosmos_cat[index][sbparams.bandpass] * sbparams.exp_time / sbparams.gain
     phi = cosmos_cat[index]['c10_sersic_fit_phi'] * galsim.radians
     q = cosmos_cat[index]['c10_sersic_fit_q']
+    g1_cosmos = cosmos_cat[index]['c10_gaussian_g1']
+    g2_cosmos = cosmos_cat[index]['c10_gaussian_g2']
     # Cosmos HLR is in units of HST pix, convert to arcsec.
     half_light_radius=cosmos_cat[index]['c10_sersic_fit_hlr']*0.03*np.sqrt(q)
+    sigma = cosmos_cat[index]["c10_gaussian_sigma"]
     n = cosmos_cat[index]['c10_sersic_fit_n']
     logprint.debug(f'galaxy z={gal_z} flux={gal_flux} hlr={half_light_radius} ' + \
                    f'sersic_index={n}')
@@ -234,34 +246,42 @@ def make_a_galaxy(ud, wcs, affine, cosmos_cat, nfw, psf, sbparams, logprint, obj
     if (n < 0.3):
         n = 0.3
 
-    gal = galsim.Sersic(n = n,
-                        flux = gal_flux,
-                        half_light_radius = half_light_radius)
+    #gal = galsim.Sersic(n = n,
+    #                    flux = gal_flux,
+    #                    half_light_radius = half_light_radius)
+    gal  = galsim.Gaussian(sigma=sigma, flux=gal_flux)
 
-    gal = gal.shear(q = q, beta = phi)
+    gal = gal.shear(g1 = g1_cosmos, g2 = g2_cosmos)
     logprint.debug('created galaxy')
 
     ## Apply a random rotation
-    theta = ud()*2.0*np.pi*galsim.radians
-    gal = gal.rotate(theta)
+    #theta = ud()*2.0*np.pi*galsim.radians
+    #gal = gal.rotate(theta)
 
     ## Apply a random rotation
-    theta = ud()*2.0*np.pi*galsim.radians
-    gal = gal.rotate(theta)
+    #theta = ud()*2.0*np.pi*galsim.radians
+    #gal = gal.rotate(theta)
 
     ## Get the reduced shears and magnification at this point
     try:
-        nfw_shear, mu = nfw_lensing(nfw, uv_pos, gal_z)
+        nfw_shear, mu, kappa = nfw_lensing(nfw, uv_pos, gal_z)
         g1=nfw_shear.g1; g2=nfw_shear.g2
         gal = gal.lens(g1, g2, mu)
     except galsim.errors.GalSimError:
         logprint(f'could not lens galaxy at z = {gal_z}, setting default values...')
         g1 = 0.0; g2 = 0.0
         mu = 1.0
+        kappa = 0.0
 
-    final = galsim.Convolve([psf, gal])
+    this_psf = psf.getPSF(image_pos)
+    logprint.debug("obtained PSF at image position")
 
-    logprint.debug('Convolved star and PSF at galaxy position')
+    gsp=galsim.GSParams(maximum_fft_size=32768)
+    final = galsim.Convolve([this_psf, gal],gsparams=gsp)
+    logprint.debug("Convolved galaxy and PSF at image position")
+    #final = galsim.Convolve([psf, gal])
+
+    #logprint.debug('Convolved star and PSF at galaxy position')
 
     stamp = final.drawImage(wcs=wcs.local(image_pos))
     stamp.setCenter(image_pos.x,image_pos.y)
@@ -271,6 +291,8 @@ def make_a_galaxy(ud, wcs, affine, cosmos_cat, nfw, psf, sbparams, logprint, obj
     galaxy_truth.ra=ra.deg; galaxy_truth.dec=dec.deg
     galaxy_truth.x=image_pos.x; galaxy_truth.y=image_pos.y
     galaxy_truth.g1=g1; galaxy_truth.g2=g2
+    galaxy_truth.kappa = kappa
+    galaxy_truth.cosmos_g1 = g1_cosmos; galaxy_truth.cosmos_g2 = g2_cosmos
     galaxy_truth.mu = mu; galaxy_truth.z = gal_z
     galaxy_truth.flux = stamp.added_flux
     galaxy_truth.n = n; galaxy_truth.hlr = half_light_radius
@@ -287,7 +309,13 @@ def make_a_galaxy(ud, wcs, affine, cosmos_cat, nfw, psf, sbparams, logprint, obj
         galaxy_truth.fwhm=-9999.0
 
     try:
-        galaxy_truth.mom_size=stamp.FindAdaptiveMom().moments_sigma
+        print("Yay made a new change! Hiiiiiiiii")
+        admoms = galsim.hsm.FindAdaptiveMom(gal.drawImage(wcs=wcs.local(image_pos)))
+        galaxy_truth.admom_g1 = admoms.observed_shape.g1
+        galaxy_truth.admom_g2 = admoms.observed_shape.g2
+        galaxy_truth.admom_sigma = admoms.moments_sigma * sbparams.pixel_scale
+        #galaxy_truth.mom_size=stamp.FindAdaptiveMom().moments_sigma
+        galaxy_truth.admom_flag = 1
     except galsim.errors.GalSimError:
         logprint.debug('sigma calculation failed')
         galaxy_truth.mom_size=-9999.
@@ -295,7 +323,7 @@ def make_a_galaxy(ud, wcs, affine, cosmos_cat, nfw, psf, sbparams, logprint, obj
     logprint.debug('stamp made, moving to next galaxy')
     return stamp, galaxy_truth
 
-def make_cluster_galaxy(ud, wcs,affine, centerpix, cluster_cat, psf, sbparams, logprint, obj_index=None):
+def make_cluster_galaxy(ud, wcs, affine, centerpix, cluster_cat, psf, sbparams, logprint, obj_index=None):
     """
     Method to make a single galaxy object and return stamp for
     injecting into larger GalSim image
@@ -342,7 +370,11 @@ def make_cluster_galaxy(ud, wcs,affine, centerpix, cluster_cat, psf, sbparams, l
     gal.magnify(2)
     logprint.debug(f'rescaled galaxy with scaling factor {sbparams.flux_scaling}')
 
-    final = galsim.Convolve([psf, gal])
+    this_psf = psf.getPSF(image_pos)
+    logprint.debug("obtained PSF at image position")
+
+    gsp=galsim.GSParams(maximum_fft_size=32768)
+    final = galsim.Convolve([this_psf, gal],gsparams=gsp)
 
     logprint.debug('Convolved star and PSF at galaxy position')
 
@@ -374,8 +406,13 @@ def make_cluster_galaxy(ud, wcs,affine, centerpix, cluster_cat, psf, sbparams, l
         cluster_galaxy_truth.fwhm=-9999.0
 
     try:
-        cluster_galaxy_truth.mom_size=cluster_stamp.FindAdaptiveMom().moments_sigma
-    except:
+        admoms = galsim.hsm.FindAdaptiveMom(gal.drawImage(wcs=wcs.local(image_pos)))
+        cluster_galaxy_truth.admom_g1 = admoms.observed_shape.g1
+        cluster_galaxy_truth.admom_g2 = admoms.observed_shape.g2
+        cluster_galaxy_truth.admom_sigma = admoms.moments_sigma * sbparams.pixel_scale
+        #galaxy_truth.mom_size=stamp.FindAdaptiveMom().moments_sigma
+        cluster_galaxy_truth.admom_flag = 1
+    except galsim.errors.GalSimError:
         logprint.debug('sigma calculation failed')
         cluster_galaxy_truth.mom_size=-9999.
 
@@ -430,7 +467,13 @@ def make_a_star(ud, pud, k, wcs, affine, psf, sbparams, logprint, obj_index=None
 
     # Generate PSF at location of star, convolve with optical model to make a star
     deltastar = galsim.DeltaFunction(flux=star_flux)
-    star = galsim.Convolve([psf, deltastar])
+    this_psf = psf.getPSF(image_pos)
+    logprint.debug("obtained PSF at image position")
+
+    gsp=galsim.GSParams(maximum_fft_size=32768)
+    star = galsim.Convolve([this_psf, deltastar],gsparams=gsp)
+    logprint.debug("Convolved galaxy and PSF at image position")
+    #star = galsim.Convolve([psf, deltastar])
 
     star_stamp = star.drawImage(wcs=wcs.local(image_pos)) # before it was scale = 0.206, and that was bad!
     star_stamp.setCenter(image_pos.x, image_pos.y)
@@ -447,7 +490,12 @@ def make_a_star(ud, pud, k, wcs, affine, psf, sbparams, logprint, obj_index=None
         star_truth.fwhm =- 9999.0
 
     try:
-        star_truth.mom_size=star_stamp.FindAdaptiveMom().moments_sigma
+        admoms = galsim.hsm.FindAdaptiveMom(star_stamp)
+        star_truth.admom_g1 = admoms.observed_shape.g1
+        star_truth.admom_g2 = admoms.observed_shape.g2
+        star_truth.admom_sigma = admoms.moments_sigma * sbparams.pixel_scale
+        #galaxy_truth.mom_size=stamp.FindAdaptiveMom().moments_sigma
+        star_truth.admom_flag = 1
     except galsim.errors.GalSimError:
         logprint.debug('sigma calculation failed')
         star_truth.mom_size=-9999.
@@ -1156,14 +1204,18 @@ def main(args):
     # Initialize truth catalog during first run
     if mpi is False or M.is_mpi_root():
         names = ['gal_num', 'cosmos_index','x_image', 'y_image',
-                 'ra', 'dec', 'nfw_g1', 'nfw_g2',
-                 'nfw_mu', 'redshift', 'flux',
+                 'ra', 'dec', 'nfw_g1', 'nfw_g2', 'nfw_mu', 'nfw_kappa', 'cosmos_g1', 'cosmos_g2',
+                 'admom_g1', 'admom_g2', 'admom_sigma', 'admom_flag', 'redshift', 'flux',
                  'truth_fwhm','truth_mom', 'n',
                  'hlr', 'scale_h_over_r', 'obj_class']
         types = [int, int, float, float, float, float, float,
-                 float, float, float, float, float, float,
+                 float, float, float, float, float, float, float, float, int, float, float, float, float,
                  float, float, float, str]
         truth_catalog = galsim.OutputCatalog(names, types)
+
+    all_psf_files = []
+    search_path = os.path.join('/work/mccleary_group/superbit/emp_psfs/psfex-output', '*.psf')
+    all_psf_files.extend(glob(search_path))
 
     for i in np.arange(1, sbparams.nexp+1):
         if mpi is True:
@@ -1185,6 +1237,9 @@ def main(args):
         full_image.setOrigin(dither_offsets[0], dither_offsets[1])
         full_image.wcs = wcs
 
+        psf_file = all_psf_files[i]
+        image_file = os.path.join(os.path.dirname(os.path.dirname(psf_file)), os.path.basename(psf_file).replace('_starcat.psf', '.fits'))
+        psf = galsim.des.DES_PSFEx(psf_file, image_file)
         #####
         ## Loop over galaxy objects:
         #####
@@ -1253,7 +1308,7 @@ def main(args):
 
                     if i == 1:
                         row = [ k, truth.cosmos_index, truth.x, truth.y, truth.ra, truth.dec, truth.g1,
-                                truth.g2, truth.mu,truth.z,
+                                truth.g2, truth.mu, truth.kappa, truth.cosmos_g1, truth.cosmos_g2, truth.admom_g1, truth.admom_g2, truth.admom_sigma, truth.admom_flag,  truth.z,
                                 this_flux, truth.fwhm, truth.mom_size,
                                 truth.n, truth.hlr, truth.scale_h_over_r, truth.obj_class]
                         truth_catalog.addRow(row)
@@ -1263,7 +1318,7 @@ def main(args):
         #####
         ### Inject cluster galaxy objects:
         #####
-        print('Starting cluster galaxy injections')
+        '''print('Starting cluster galaxy injections')
 
         center_coords = galsim.CelestialCoord(sbparams.center_ra,sbparams.center_dec)
         centerpix = wcs.toImage(center_coords)
@@ -1333,7 +1388,7 @@ def main(args):
                                 truth.n, truth.hlr, truth.scale_h_over_r, truth.obj_class]
                         truth_catalog.addRow(row)
                 except galsim.errors.GalSimError:
-                    logprint(f'Cluster galaxy {k} has failed, skipping...')
+                    logprint(f'Cluster galaxy {k} has failed, skipping...')'''
 
         #####
         ### Now repeat process for stars!
@@ -1401,7 +1456,7 @@ def main(args):
 
                     if i == 1:
                         row = [ k, truth.cosmos_index, truth.x, truth.y, truth.ra, truth.dec,
-                                truth.g1, truth.g2, truth.mu,
+                                truth.g1, truth.g2, truth.mu, truth.admom_g1, truth.admom_g2, truth.admom_sigma, truth.admom_flag,
                                 truth.z, this_flux, truth.fwhm,truth.mom_size,
                                 truth.n, truth.hlr, truth.scale_h_over_r, truth.obj_class]
                         truth_catalog.addRow(row)
@@ -1485,11 +1540,11 @@ def main(args):
         # Create mask and weight files in the output directory
         logprint('Creating masks')
         logprint.warning('For now, we just write a simple mask file with all 1s')
-        sbparams.make_mask_files(logprint, clobber, cal_dir=output_dir)
+        #sbparams.make_mask_files(logprint, clobber, cal_dir=output_dir)
 
         logprint('Creating weights')
         logprint.warning('For now, we just write a simple weight file with all 1s')
-        sbparams.make_weight_files(logprint, clobber, cal_dir=output_dir)
+        #sbparams.make_weight_files(logprint, clobber, cal_dir=output_dir)
 
     # Log file was created before outdir is setup in some cases
     # If so, move from temp location to there

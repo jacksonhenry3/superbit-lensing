@@ -81,6 +81,7 @@ class truth():
         self.dec = None
         self.g1 = 0.0
         self.g2 = 0.0
+        self.T = 0.0
         self.mu = 1.0
         self.z = 0.0
         self.fwhm = 0.0
@@ -185,7 +186,7 @@ def combine_objs(make_obj_outputs, full_image, truth_catalog, exp_num):
         if exp_num == 1:
             row = [i, truth.cosmos_index, truth.x, truth.y,
                    truth.ra, truth.dec,
-                   truth.g1, truth.g2,
+                   truth.g1, truth.g2, truth.T,
                    truth.mu,truth.z,
                    this_flux, truth.fwhm, truth.mom_size,
                    truth.n, truth.hlr, truth.scale_h_over_r,
@@ -222,42 +223,19 @@ def make_a_galaxy(ud, wcs, affine, cosmos_cat, nfw, psf, sbparams, logprint, obj
     index = int(np.floor(ud()*len(cosmos_cat)))
     gal_z = cosmos_cat[index]['ZPDF']
     gal_flux = cosmos_cat[index][sbparams.bandpass] * sbparams.exp_time / sbparams.gain
-    phi = cosmos_cat[index]['c10_sersic_fit_phi'] * galsim.radians
-    q = cosmos_cat[index]['c10_sersic_fit_q']
-    # Cosmos HLR is in units of HST pix, convert to arcsec.
-    half_light_radius=cosmos_cat[index]['c10_sersic_fit_hlr']*0.03*np.sqrt(q)
-    n = cosmos_cat[index]['c10_sersic_fit_n']
-    logprint.debug(f'galaxy z={gal_z} flux={gal_flux} hlr={half_light_radius} ' + \
-                   f'sersic_index={n}')
+    
+    g1 = cosmos_cat[index]["c10_gaussian_e1"]
+    g2 = cosmos_cat[index]["c10_gaussian_e2"]
+    sigma = cosmos_cat[index]["c10_gaussian_sigma"]
 
-    # Sersic class requires index n >= 0.3
-    if (n < 0.3):
-        n = 0.3
+    logprint.debug(f'galaxy g1={g1}, g2={g2}, flux={gal_flux} sigma={sigma}')
 
-    gal = galsim.Sersic(n = n,
-                        flux = gal_flux,
-                        half_light_radius = half_light_radius)
 
-    gal = gal.shear(q = q, beta = phi)
+    gal = galsim.Gaussian(sigma=sigma, flux=gal_flux)
+    gal = gal.shear(g1=g1, g2=g2)
     logprint.debug('created galaxy')
 
-    ## Apply a random rotation
-    theta = ud()*2.0*np.pi*galsim.radians
-    gal = gal.rotate(theta)
-
-    ## Apply a random rotation
-    theta = ud()*2.0*np.pi*galsim.radians
-    gal = gal.rotate(theta)
-
     ## Get the reduced shears and magnification at this point
-    try:
-        nfw_shear, mu = nfw_lensing(nfw, uv_pos, gal_z)
-        g1=nfw_shear.g1; g2=nfw_shear.g2
-        gal = gal.lens(g1, g2, mu)
-    except galsim.errors.GalSimError:
-        logprint(f'could not lens galaxy at z = {gal_z}, setting default values...')
-        g1 = 0.0; g2 = 0.0
-        mu = 1.0
 
     final = galsim.Convolve([psf, gal])
 
@@ -270,12 +248,11 @@ def make_a_galaxy(ud, wcs, affine, cosmos_cat, nfw, psf, sbparams, logprint, obj
     galaxy_truth.cosmos_index = cosmos_cat[index]['NUMBER']
     galaxy_truth.ra=ra.deg; galaxy_truth.dec=dec.deg
     galaxy_truth.x=image_pos.x; galaxy_truth.y=image_pos.y
-    galaxy_truth.g1=g1; galaxy_truth.g2=g2
-    galaxy_truth.mu = mu; galaxy_truth.z = gal_z
+    galaxy_truth.g1=g1; galaxy_truth.g2=g2, 
+    galaxy_truth.T = 2 * (sigma**2)
+    galaxy_truth.z = gal_z
     galaxy_truth.flux = stamp.added_flux
-    galaxy_truth.n = n; galaxy_truth.hlr = half_light_radius
     #galaxy_truth.inclination = inclination.deg # storing in degrees for human readability
-    galaxy_truth.scale_h_over_r = q
     galaxy_truth.obj_class = 'gal'
 
     logprint.debug('created truth values')
@@ -1156,7 +1133,7 @@ def main(args):
     # Initialize truth catalog during first run
     if mpi is False or M.is_mpi_root():
         names = ['gal_num', 'cosmos_index','x_image', 'y_image',
-                 'ra', 'dec', 'nfw_g1', 'nfw_g2',
+                 'ra', 'dec', 'true_g1', 'true_g2', 'true_T',
                  'nfw_mu', 'redshift', 'flux',
                  'truth_fwhm','truth_mom', 'n',
                  'hlr', 'scale_h_over_r', 'obj_class']
@@ -1171,7 +1148,7 @@ def main(args):
             M.barrier()
 
         outnum = str(i).zfill(3)
-        outname = f'{run_name}_{outnum}_{band}_sim.fits'
+        outname = f'{run_name}_{band}_{outnum}_clean.fits'
         file_name = os.path.join(output_dir, outname)
 
         # Set up the image:
@@ -1253,87 +1230,13 @@ def main(args):
 
                     if i == 1:
                         row = [ k, truth.cosmos_index, truth.x, truth.y, truth.ra, truth.dec, truth.g1,
-                                truth.g2, truth.mu,truth.z,
+                                truth.g2, truth.T, truth.mu, truth.z,
                                 this_flux, truth.fwhm, truth.mom_size,
                                 truth.n, truth.hlr, truth.scale_h_over_r, truth.obj_class]
                         truth_catalog.addRow(row)
                 except galsim.errors.GalSimError:
                     logprint(f'Galaxy {k} has failed, skipping...')
 
-        #####
-        ### Inject cluster galaxy objects:
-        #####
-        print('Starting cluster galaxy injections')
-
-        center_coords = galsim.CelestialCoord(sbparams.center_ra,sbparams.center_dec)
-        centerpix = wcs.toImage(center_coords)
-
-        if mpi is False:
-            start = time.time()
-            with Pool(ncores) as pool:
-                batch_indices = utils.setup_batches(sbparams.nclustergal, ncores)
-
-                full_image, truth_catalog = combine_objs(
-                    pool.starmap(
-                        make_obj_runner,
-                        ([
-                          batch_indices[k],
-                          'cluster_gal',
-                          galsim.UniformDeviate(sbparams.cluster_seed+k+1),
-                          wcs,
-                          affine,
-                          centerpix,
-                          cluster_cat,
-                          psf,
-                          sbparams,
-                          logprint
-                          ] for k in range(ncores))
-                        ),
-                    full_image,
-                    truth_catalog,
-                    i
-                    )
-
-            dt = time.time() - start
-            logprint(f'Total time for cluster galaxy injections: {dt:.1f}s')
-
-        else:
-            # get local range to iterate over in this process
-            local_start, local_end = M.mpi_local_range(sbparams.nclustergal)
-            for k in range(local_start, local_end):
-
-                time1 = time.time()
-
-                # The usual random number generator using a different seed for each galaxy.
-                ud = galsim.UniformDeviate(sbparams.cluster_seed+k+1)
-
-                try:
-                    # make single galaxy object
-                    cluster_stamp,truth = make_cluster_galaxy(ud=ud,wcs=wcs,affine=affine,
-                                                            centerpix=centerpix,
-                                                            cluster_cat=cluster_cat,
-                                                            psf=psf,
-                                                            sbparams=sbparams,
-                                                            logprint=logprint)
-                    # Find the overlapping bounds:
-                    bounds = cluster_stamp.bounds & full_image.bounds
-
-                    # Finally, add the stamp to the full image.
-
-                    full_image[bounds] += cluster_stamp[bounds]
-                    time2 = time.time()
-                    tot_time = time2-time1
-                    logprint(f'Cluster galaxy {k} positioned relative to center t={tot_time} s')
-                    this_flux=np.sum(cluster_stamp.array)
-
-                    if i == 1:
-                        row = [ k, truth.cosmos_index, truth.x, truth.y, truth.ra, truth.dec,
-                                truth.g1, truth.g2, truth.mu, truth.z,
-                                this_flux, truth.fwhm, truth.mom_size,
-                                truth.n, truth.hlr, truth.scale_h_over_r, truth.obj_class]
-                        truth_catalog.addRow(row)
-                except galsim.errors.GalSimError:
-                    logprint(f'Cluster galaxy {k} has failed, skipping...')
 
         #####
         ### Now repeat process for stars!
@@ -1401,7 +1304,7 @@ def main(args):
 
                     if i == 1:
                         row = [ k, truth.cosmos_index, truth.x, truth.y, truth.ra, truth.dec,
-                                truth.g1, truth.g2, truth.mu,
+                                truth.g1, truth.g2, truth.T, truth.mu,
                                 truth.z, this_flux, truth.fwhm,truth.mom_size,
                                 truth.n, truth.hlr, truth.scale_h_over_r, truth.obj_class]
                         truth_catalog.addRow(row)

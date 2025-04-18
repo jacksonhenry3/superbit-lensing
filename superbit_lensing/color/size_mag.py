@@ -34,6 +34,7 @@ def main(cluster_name, band, datadir, save_union_catalog, mag_low, mag_high, rad
 
     # Compute magnitudes only for valid entries
     mag_calc = -2.5 * np.log10(flux_auto[valid_indices])
+    #mag_calc = sex_cat["MAG_AUTO"]
     flux_radius_filtered = flux_radius[valid_indices]
 
     # Apply selection criteria
@@ -51,6 +52,7 @@ def main(cluster_name, band, datadir, save_union_catalog, mag_low, mag_high, rad
     # Union catalog objects
     union_flux_radius = union_catalog["FLUX_RADIUS"]
     union_mag = -2.5 * np.log10(union_catalog["FLUX_AUTO"])
+    #union_mag = union_catalog["MAG_AUTO"]
 
     # Create a primary HDU (empty, required for FITS format)
     primary_hdu = fits.PrimaryHDU()
@@ -70,8 +72,8 @@ def main(cluster_name, band, datadir, save_union_catalog, mag_low, mag_high, rad
     plt.axvline(x=radius_low, color='red', linestyle='--', label=f'Half-light radius={radius_low}')
     plt.axhline(y=mag_high, color='green', linestyle='--', label=f'Magnitude={mag_high}')
     plt.axhline(y=mag_low, color='orange', linestyle='--', label=f'Magnitude={mag_low}')
-    plt.xlim(-3, 65)
-    plt.ylim(-20, 2.5)
+    plt.xlim(0, 50)
+    #plt.ylim(-20, 2.5)
     plt.xlabel("Half-light radius")
     plt.ylabel(f"$m_{band}$")
     plt.title(f"{cluster_name}")

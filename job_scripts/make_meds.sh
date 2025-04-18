@@ -2,12 +2,12 @@
 #SBATCH -t 13:59:59
 #SBATCH -N 1
 #SBATCH -n 18
-#SBATCH --mem-per-cpu=10g
+#SBATCH --mem-per-cpu=30g
 #SBATCH --partition=short
 #SBATCH -J meds
 #SBATCH -v
-#SBATCH -o out.log
-#SBATCH -e err.log
+#SBATCH -o slurm_outfiles/out.log
+#SBATCH -e slurm_outfiles/err.log
 
 # Load configuration file
 source "$SLURM_SUBMIT_DIR/config.sh"
@@ -17,7 +17,7 @@ date
 which python
 
 # Path checking
-export PATH=$PATH:'/work/mccleary_group/Software/texlive-bin/x86_64-linux'
+#export PATH=$PATH:'/work/mccleary_group/Software/texlive-bin/x86_64-linux'
 echo $PATH
 echo $PYTHONPATH
 

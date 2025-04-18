@@ -8,6 +8,7 @@ This pipeline uses `ngmix_v2_fit_superbit.py` and `make_annular_catalog_v2.py`. 
    Open `config.sh` and update the following variables to match your setup:
    - `cluster_name`: Your target galaxy cluster
    - `band_name`: The observation band
+   - `cluster_redshift` the redshift of the target cluster
    - `DATADIR`: Path to your data directory
    - `CODEDIR`: Path to your code directory
 
@@ -29,5 +30,5 @@ This pipeline uses `ngmix_v2_fit_superbit.py` and `make_annular_catalog_v2.py`. 
 
     After all your ngmix runs have been finished, run the following command
     ```sh
-    bash make_annular.sh
+    sbatch sub_annular
 - This will combine all your mcal files in "data/cluster/band/arr/runx", do id matching and combine the mcal values and finally run make_annular_catalog_v2.py on the combined file. The final annular file will be "Outdir/cluster_band_annular_combined.fits"

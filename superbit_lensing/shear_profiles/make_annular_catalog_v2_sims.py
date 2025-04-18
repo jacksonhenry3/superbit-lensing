@@ -2,22 +2,24 @@ import numpy as np
 import ipdb
 from astropy.table import Table, vstack, hstack, join
 from astropy.wcs import WCS
+import astropy.units as u
+from astropy.coordinates import SkyCoord
+from astropy.table import hstack
 import glob
 import sys, os
 from astropy.io import fits
 from esutil import htm
 from argparse import ArgumentParser
 
+
 from annular_jmac import Annular, ShearCalc
 from make_redshift_cat import make_redshift_catalog
 from superbit_lensing import utils
+from superbit_lensing.match import SkyCoordMatcher
 
 
 def parse_args():
-
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_config = os.path.join(script_dir, 'configs/default_annular_config.yaml')
-    
     parser = ArgumentParser()
 
     parser.add_argument('data_dir', type=str,
@@ -31,7 +33,7 @@ def parse_args():
     parser.add_argument('-outdir', type=str, default=None,
                         help='Output directory')
     parser.add_argument('-config', '-c', type=str,
-                        default=default_config,
+                        default=os.path.join(script_dir, 'configs/default_annular_config_sims.yaml'),
                         help='Configuration file with annular cuts etc.')
     parser.add_argument('-detection_band', type=str, default='b',
                         help='Detection bandpass [default: b]')
@@ -102,6 +104,8 @@ class AnnularCatalog():
             self.outfile = os.path.join(self.outdir, self.outfile)
         else:
             self.outdir = ''
+
+        self.outfile_w_truth = self.outfile.replace(".fits", "_with_truth.fits")
 
         self.det_cat = Table.read(self.detect_cat, hdu=2)
         self.mcal = Table.read(self.mcal_file)
@@ -267,7 +271,6 @@ class AnnularCatalog():
 
 
         # Apply selection cuts and produce responsivity-corrected shear moments
-        # Return selection (quality) cuts
         self._compute_metacal_quantities()
 
         # Save selected galaxies to file
@@ -275,8 +278,32 @@ class AnnularCatalog():
             self.selected.meta[key] = val
 
         self.selected.write(self.outfile, format='fits', overwrite=overwrite)
+
+        truthfile = f"{cat_info['data_dir']}/{self.run_name}/{cat_info['band']}/cal/{self.run_name}_truth_{cat_info['band']}.fits"
+
+        truth = Table.read(truthfile)
+        
+        self.selected_with_truth = join(
+            self.selected, truth, join_type='inner',
+            keys=['ra', 'dec'], table_names=['mcal', 'truth']
+            )
+
+        # Convert RA/Dec to SkyCoord objects
+        tolerance_deg = 1./3600.
+        matcher_truth = SkyCoordMatcher(self.selected, truth, cat1_ratag='ra', cat1_dectag='dec',
+                                return_idx=True, match_radius=1 * tolerance_deg)
+        matched_selected, matched_truth, idx1, idx2 = matcher_truth.get_matched_pairs()
+
+        # Apply mask and combine tables
+        self.selected_with_truth = hstack([matched_selected, matched_truth], table_names=["mcal", "truth"])
+
+        print(f"Number of objects joined from truth file : {len(self.selected_with_truth)}")
+
+        self.selected_with_truth.write(self.outfile_w_truth, format='fits', overwrite=overwrite)
+        print(f'The final file with object truth values: {self.outfile_w_truth}')
+
         print("==Some Stats==\n")
-        _ = utils.analyze_mcal_fits(self.outfile, update_header=True)        
+        _ = utils.analyze_mcal_fits(self.outfile_w_truth, update_header=True)
 
         return
 
@@ -319,7 +346,7 @@ class AnnularCatalog():
             & (mcal['T_noshear'] >= min_T) \
             & (mcal['s2n_noshear'] > min_sn) \
             & (mcal['s2n_noshear'] < max_sn) \
-            & (mcal['redshift'] > min_redshift)
+            #& (mcal['redshift'] > min_redshift)
         ]
 
         selection_1p = mcal[
@@ -487,6 +514,8 @@ class AnnularCatalog():
         self.selected['R22_S'] = r22_S
         self.selected['weight'] = weight
 
+        return
+
     def run(self, overwrite, vb=False):
 
         # match master metacal catalog to source extractor cat
@@ -598,7 +627,8 @@ def main(args):
         'cluster_redshift': cluster_redshift,
         'nfw_file': nfw_file,
         'Nresample': Nresample,
-        'nfw_seed': nfw_seed
+        'nfw_seed': nfw_seed,
+        'band': detection_band
         }
 
     annular_info = {
