@@ -6,8 +6,8 @@
 #SBATCH --partition=short
 #SBATCH -J meds
 #SBATCH -v
-#SBATCH -o slurm_outfiles/out.log
-#SBATCH -e slurm_outfiles/err.log
+#SBATCH -o slurm_outfiles/out_makemeds_%j.log
+#SBATCH -e slurm_outfiles/err_makemeds_%j.err
 
 # Load configuration file
 source "$SLURM_SUBMIT_DIR/config.sh"
