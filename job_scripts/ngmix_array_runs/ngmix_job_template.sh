@@ -6,8 +6,8 @@
 #SBATCH --partition=short
 #SBATCH -J ngmix1
 #SBATCH -v
-#SBATCH -o out.log
-#SBATCH -e err.log
+#SBATCH -o slurm_outfiles/ngmix/out_%j.log
+#SBATCH -e slurm_outfiles/ngmix/err_%j.err
 
 # Load configuration file
 source "$SLURM_SUBMIT_DIR/config.sh"
