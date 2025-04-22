@@ -2,6 +2,8 @@
 #SBATCH -n 16          # Request 10 cores
 #SBATCH --mem=16g      # Request 16GB of memory
 #SBATCH -J "my_annular"  # Name your job
+#SBATCH -o slurm_outfiles/out_make_annular_%j.log
+#SBATCH -e slurm_outfiles/err_make_annular_%j.err
 
 
 source "./config.sh"
