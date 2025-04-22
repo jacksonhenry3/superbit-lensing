@@ -11,6 +11,7 @@ This pipeline uses `ngmix_v2_fit_superbit.py` and `make_annular_catalog_v2.py`. 
    - `cluster_redshift` the redshift of the target cluster
    - `DATADIR`: Path to your data directory
    - `CODEDIR`: Path to your code directory
+   - `COND_ENV`: the name of your conda environment
 
 2. **Run MEDS-making and ngmix processing**
 
